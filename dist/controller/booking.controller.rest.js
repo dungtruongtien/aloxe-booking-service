@@ -35,41 +35,38 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-var express_1 = __importDefault(require("express"));
-var api_route_1 = __importDefault(require("./routes/api.route"));
-function start() {
-    return __awaiter(this, void 0, void 0, function () {
-        var app;
-        return __generator(this, function (_a) {
-            app = (0, express_1.default)();
-            app.use(express_1.default.json());
-            app.use(express_1.default.urlencoded({ extended: true }));
-            app.use('/api', api_route_1.default);
-            app.use(function (err, req, res, next) {
-                if (!err.status || (err.status >= 500 && err.status <= 599)) {
-                    err.status = 500;
-                    err.name = 'INTERNAL_ERROR';
-                    err.message = 'Internal error';
+var booking_service_1 = require("../services/booking.service");
+var axios_1 = require("axios");
+var order_repository_1 = require("../repository/order/order.repository");
+var drive_repository_1 = require("../repository/driver/drive.repository");
+var BookingRestController = (function () {
+    function BookingRestController() {
+        var _this = this;
+        this.orderRepo = new order_repository_1.OrderRepository();
+        this.driverRepo = new drive_repository_1.DriverRepository();
+        this.processBookingOrder = function (req, res, next) { return __awaiter(_this, void 0, void 0, function () {
+            var data;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4, this.bookingService.processBookingOrderPub(req.body)];
+                    case 1:
+                        data = _a.sent();
+                        res.status(axios_1.HttpStatusCode.Ok).json({
+                            status: 'SUCCESS',
+                            data: data
+                        });
+                        return [2];
                 }
-                res.status(err.status).json({
-                    name: err.name,
-                    message: err.message,
-                    data: null,
-                    status: err.name
-                });
             });
-            app.listen({ port: 4005 }, function () {
-                console.log('🚀 Server ready at http://localhost:4005/');
-            });
-            return [2];
-        });
-    });
-}
-start().catch(function (err) {
-    console.log('err', err);
-});
-//# sourceMappingURL=index.js.map
+        }); };
+        this.bookingService = new booking_service_1.BookingService(this.orderRepo, this.driverRepo);
+    }
+    return BookingRestController;
+}());
+exports.default = BookingRestController;
+var orderRepo = new order_repository_1.OrderRepository();
+var driverRepo = new drive_repository_1.DriverRepository();
+var bookingService = new booking_service_1.BookingService(orderRepo, driverRepo);
+bookingService.processBookingOrderSub().then(function () { }).catch(function () { });
+//# sourceMappingURL=booking.controller.rest.js.map

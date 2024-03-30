@@ -39,37 +39,36 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var express_1 = __importDefault(require("express"));
-var api_route_1 = __importDefault(require("./routes/api.route"));
-function start() {
-    return __awaiter(this, void 0, void 0, function () {
-        var app;
-        return __generator(this, function (_a) {
-            app = (0, express_1.default)();
-            app.use(express_1.default.json());
-            app.use(express_1.default.urlencoded({ extended: true }));
-            app.use('/api', api_route_1.default);
-            app.use(function (err, req, res, next) {
-                if (!err.status || (err.status >= 500 && err.status <= 599)) {
-                    err.status = 500;
-                    err.name = 'INTERNAL_ERROR';
-                    err.message = 'Internal error';
+exports.OrderRepository = void 0;
+var axios_1 = __importDefault(require("axios"));
+var constant_1 = require("../../common/constant");
+var OrderRepository = (function () {
+    function OrderRepository() {
+    }
+    OrderRepository.prototype.updateOrder = function (input) {
+        return __awaiter(this, void 0, void 0, function () {
+            var config, response;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        config = {
+                            method: 'put',
+                            maxBodyLength: Infinity,
+                            url: 'http://localhost:4002/api/orders',
+                            headers: {
+                                authorization: constant_1.INTERNAL_TOKEN
+                            },
+                            data: input
+                        };
+                        return [4, axios_1.default.request(config)];
+                    case 1:
+                        response = _a.sent();
+                        return [2, response.data.data];
                 }
-                res.status(err.status).json({
-                    name: err.name,
-                    message: err.message,
-                    data: null,
-                    status: err.name
-                });
             });
-            app.listen({ port: 4005 }, function () {
-                console.log('🚀 Server ready at http://localhost:4005/');
-            });
-            return [2];
         });
-    });
-}
-start().catch(function (err) {
-    console.log('err', err);
-});
-//# sourceMappingURL=index.js.map
+    };
+    return OrderRepository;
+}());
+exports.OrderRepository = OrderRepository;
+//# sourceMappingURL=order.repository.js.map
