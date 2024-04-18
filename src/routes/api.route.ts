@@ -1,8 +1,13 @@
-import express from 'express'
-import bookingRouterHandler from './booking.route'
+import express, { type Router } from 'express'
+import { createBookingRoute } from './booking.route'
+import { createNotificationRoute } from './notification.route'
 
-const router = express.Router()
+export const createRootRoute = (): Router => {
+  const router = express.Router()
+  const bookingRoute = createBookingRoute()
+  const notificationRoute = createNotificationRoute()
 
-router.use('/booking', bookingRouterHandler)
-
-export default router
+  router.use('/booking', bookingRoute)
+  router.use('/notification', notificationRoute)
+  return router
+}

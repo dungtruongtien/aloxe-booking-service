@@ -1,4 +1,19 @@
 "use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 var __assign = (this && this.__assign) || function () {
     __assign = Object.assign || function(t) {
         for (var s, i = 1, n = arguments.length; i < n; i++) {
@@ -52,19 +67,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BookingService = void 0;
 var bull_1 = __importDefault(require("bull"));
-var date_fns_tz_1 = require("date-fns-tz");
 var distance_1 = require("../utils/distance");
 var order_interface_1 = require("../repository/order/order.interface");
 var drive_interface_1 = require("../repository/driver/drive.interface");
+var base_service_1 = require("./base.service");
 var BOOKING_QUEUE_NAME = 'aloxe_booking';
 var bookingQueue = new bull_1.default(BOOKING_QUEUE_NAME);
-var BookingService = (function () {
+var BookingService = (function (_super) {
+    __extends(BookingService, _super);
     function BookingService(orderRepo, driverRepo, customerRepo) {
-        var _this = this;
-        this.setRealtimeService = function (realtimeSvc) {
-            _this.realtimeSvc = realtimeSvc;
-        };
-        this.handleAssignDriverForBooking = function (order) { return __awaiter(_this, void 0, void 0, function () {
+        var _this = _super.call(this) || this;
+        _this.handleAssignDriverForBooking = function (order) { return __awaiter(_this, void 0, void 0, function () {
             var _a, driver, minDistance, totalPrice, updateOrderDto_1, updateOrderDto, updateOrderResp, error_1, updateDriverLoginSessionDto;
             return __generator(this, function (_b) {
                 switch (_b.label) {
@@ -72,8 +85,7 @@ var BookingService = (function () {
                     case 1:
                         _a = _b.sent(), driver = _a.driver, minDistance = _a.minDistance, totalPrice = _a.totalPrice;
                         if (!!driver) return [3, 4];
-                        console.log('driver-----', driver);
-                        return [4, this.realtimeSvc.broadcast('test_evt', JSON.stringify({ test: 'test' }))];
+                        return [4, this.realtimeSvc.broadcast(order.id.toString(), JSON.stringify({ test: 'test' }))];
                     case 2:
                         _b.sent();
                         updateOrderDto_1 = {
@@ -120,23 +132,16 @@ var BookingService = (function () {
                 }
             });
         }); };
-        this.orderRepo = orderRepo;
-        this.driverRepo = driverRepo;
-        this.customerRepo = customerRepo;
+        _this.orderRepo = orderRepo;
+        _this.driverRepo = driverRepo;
+        _this.customerRepo = customerRepo;
+        return _this;
     }
     BookingService.prototype.processBookingOrderPub = function (input) {
         return __awaiter(this, void 0, void 0, function () {
-            var delayInMilliseconds, nowInVN, startTimeInVN;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0:
-                        delayInMilliseconds = 0;
-                        if (input.startTime) {
-                            nowInVN = (0, date_fns_tz_1.toZonedTime)(new Date(), 'Asia/Ho_Chi_Minh');
-                            startTimeInVN = (0, date_fns_tz_1.toZonedTime)(new Date(input.startTime), 'Asia/Ho_Chi_Minh');
-                            delayInMilliseconds = startTimeInVN.getTime() - nowInVN.getTime();
-                        }
-                        return [4, bookingQueue.add(input, { delay: delayInMilliseconds })];
+                    case 0: return [4, bookingQueue.add(input)];
                     case 1:
                         _a.sent();
                         return [2, null];
@@ -155,7 +160,7 @@ var BookingService = (function () {
                                 switch (_a.label) {
                                     case 0:
                                         _a.trys.push([0, 4, , 5]);
-                                        input = job.data;
+                                        input = job;
                                         return [4, this.handleAssignDriverForBooking(input)];
                                     case 1:
                                         resp = _a.sent();
@@ -184,7 +189,6 @@ var BookingService = (function () {
                                         return [3, 5];
                                     case 4:
                                         error_2 = _a.sent();
-                                        console.log('error------', error_2);
                                         done();
                                         return [3, 5];
                                     case 5: return [2];
@@ -203,9 +207,7 @@ var BookingService = (function () {
             var availableDrivers, _a, driver, minDistance, totalPrice;
             return __generator(this, function (_b) {
                 switch (_b.label) {
-                    case 0:
-                        console.log('getSuitableDriver here-----------');
-                        return [4, this.driverRepo.getAvailableDrivers(order.orderDetail.vehicleType)];
+                    case 0: return [4, this.driverRepo.getAvailableDrivers(order.orderDetail.vehicleType)];
                     case 1:
                         availableDrivers = _b.sent();
                         if (!availableDrivers || availableDrivers.length === 0) {
@@ -215,7 +217,7 @@ var BookingService = (function () {
                     case 2:
                         _a = _b.sent(), driver = _a.driver, minDistance = _a.minDistance, totalPrice = _a.totalPrice;
                         if (!driver) {
-                            return [2, { driver: null }];
+                            return [2, null];
                         }
                         return [2, {
                                 driver: driver,
@@ -253,6 +255,9 @@ var BookingService = (function () {
                         suitableDriverIdx = idx;
                     }
                 });
+                if (minDistance === Number.MAX_SAFE_INTEGER) {
+                    throw new Error('invalid lat long');
+                }
                 if (suitableDriverIdx === -1) {
                     return [2, { driver: null }];
                 }
@@ -276,6 +281,6 @@ var BookingService = (function () {
         });
     };
     return BookingService;
-}());
+}(base_service_1.BaseService));
 exports.BookingService = BookingService;
 //# sourceMappingURL=booking.service.js.map

@@ -35,22 +35,39 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-var server_1 = require("./server");
-function start() {
-    return __awaiter(this, void 0, void 0, function () {
-        return __generator(this, function (_a) {
-            (0, server_1.createSocketServer)().listen({ port: 4006 }, function () {
-                console.log('🚀 Socket ready at http://localhost:4006/');
+exports.CustomerRepository = void 0;
+var axios_1 = __importDefault(require("axios"));
+var constant_1 = require("../../common/constant");
+var CustomerRepository = (function () {
+    function CustomerRepository() {
+    }
+    CustomerRepository.prototype.getCustomer = function (id) {
+        return __awaiter(this, void 0, void 0, function () {
+            var config, response;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        config = {
+                            method: 'get',
+                            maxBodyLength: Infinity,
+                            url: "http://localhost:4003/api/customers/".concat(id),
+                            headers: {
+                                authorization: constant_1.INTERNAL_TOKEN
+                            }
+                        };
+                        return [4, axios_1.default.request(config)];
+                    case 1:
+                        response = _a.sent();
+                        return [2, response.data.data];
+                }
             });
-            (0, server_1.createHttpServer)().listen({ port: 4005 }, function () {
-                console.log('🚀 Server ready at http://localhost:4005/');
-            });
-            return [2];
         });
-    });
-}
-start().catch(function (err) {
-    console.log('err', err);
-});
-//# sourceMappingURL=index.js.map
+    };
+    return CustomerRepository;
+}());
+exports.CustomerRepository = CustomerRepository;
+//# sourceMappingURL=drive.repository.js.map

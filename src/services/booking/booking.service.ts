@@ -1,20 +1,25 @@
 import Queue from 'bull'
-import { type IBookingService } from './interface'
-import { getDistanceFromLatLonInKm } from '../utils/distance'
-import { type IUpdateOrderInput, type IOrderRepo, OrderStatus } from '../repository/order/order.interface'
+import { type IBookingService } from './booking.interface'
+import { toZonedTime } from 'date-fns-tz'
+import { getDistanceFromLatLonInKm } from '../../utils/distance'
+import { type IUpdateOrderInput, type IOrderRepo, OrderStatus } from '../../repository/order/order.interface'
 import {
   DriverOnlineSessionWorkingStatusEnum,
   type IDriverRepo,
   type IUpdateDriverLoginSession
-} from '../repository/driver/drive.interface'
+} from '../../repository/driver/drive.interface'
 import { type IProcessBookingOrderDTO } from './booking.dto'
-import { type IDriver } from '../repository/driver/drive.schema'
+import { type IDriver } from '../../repository/driver/drive.schema'
+import { type ICustomerRepo } from '../../repository/customer/user.interface'
+import { type IRealtimeSvc } from '../../client/socket/interface'
 
 const BOOKING_QUEUE_NAME = 'aloxe_booking'
 const bookingQueue = new Queue(BOOKING_QUEUE_NAME)
 
 interface IAssignDriverForBookingRes {
-  driver: any
+  driver: {
+    id: number
+  }
   minDistance: number
   totalPrice: number
   status: string
@@ -23,13 +28,26 @@ interface IAssignDriverForBookingRes {
 export class BookingService implements IBookingService {
   private readonly orderRepo: IOrderRepo
   private readonly driverRepo: IDriverRepo
-  constructor (orderRepo: IOrderRepo, driverRepo: IDriverRepo) {
+  private readonly customerRepo: ICustomerRepo
+  private realtimeSvc: IRealtimeSvc
+  constructor (orderRepo: IOrderRepo, driverRepo: IDriverRepo, customerRepo: ICustomerRepo) {
     this.orderRepo = orderRepo
     this.driverRepo = driverRepo
+    this.customerRepo = customerRepo
+  }
+
+  setRealtimeService = (realtimeSvc: IRealtimeSvc): any => {
+    this.realtimeSvc = realtimeSvc
   }
 
   async processBookingOrderPub (input: IProcessBookingOrderDTO): Promise<any> {
-    await bookingQueue.add(input)
+    let delayInMilliseconds = 0
+    if (input.startTime) {
+      const nowInVN = toZonedTime(new Date(), 'Asia/Ho_Chi_Minh')
+      const startTimeInVN = toZonedTime(new Date(input.startTime), 'Asia/Ho_Chi_Minh')
+      delayInMilliseconds = startTimeInVN.getTime() - nowInVN.getTime()
+    }
+    await bookingQueue.add(input, { delay: delayInMilliseconds })
     return null
   }
 
@@ -37,24 +55,41 @@ export class BookingService implements IBookingService {
     await bookingQueue.process(async (job: any, done) => {
       // Job is object of full order
       try {
-        const resp = await this.handleAssignDriverForBooking(job.data as IProcessBookingOrderDTO)
+        const input: IProcessBookingOrderDTO = job.data
+        const resp = await this.handleAssignDriverForBooking(input)
         console.log('resp-------', resp)
+        if (input.supportStaffId) {
+          this.realtimeSvc.broadcast(input.supportStaffId.toString(), 'Hello')
+        }
+        if (resp?.driver) {
+          const customer = await this.customerRepo.getCustomer(input.customerId)
+          if (customer) {
+            this.realtimeSvc.broadcast(input.id.toString(), 'Hello')
+            this.realtimeSvc.broadcast(resp.driver.id.toString(), JSON.stringify({
+              message: 'Bạn có 1 đơn đặt xe',
+              booking: { ...input, status: 'DRIVER_FOUND', minDistance: resp.minDistance },
+              customer: {
+                fullName: customer.user.fullName,
+                phoneNumber: customer.user.phoneNumber
+                // avatar: customer.user.avatar
+              }
+            }))
+          }
+        }
         done()
       } catch (error) {
+        console.log('error------', error)
         done()
       }
     })
   }
 
-  async handleAssignDriverForBooking (order: IProcessBookingOrderDTO): Promise<IAssignDriverForBookingRes | null> {
+  handleAssignDriverForBooking = async (order: IProcessBookingOrderDTO): Promise<IAssignDriverForBookingRes | null> => {
     const { driver, minDistance, totalPrice } = await this.getSuitableDriver(order)
     if (!driver) {
-      // TODO Update order API
-      // TODO Broadcast message to socket
-      // await Booking.update(
-      //   { status: 'DRIVER_NOT_FOUND' },
-      //   { where: { id: booking.id } }
-      // )
+      console.log('driver-----', driver)
+      // await this.realtimeSvc.broadcast(order.id.toString(), JSON.stringify({ test: 'test' }))
+      await this.realtimeSvc.broadcast('test_evt', JSON.stringify({ test: 'test' }))
       const updateOrderDto: IUpdateOrderInput = {
         id: order.id,
         status: OrderStatus.DRIVER_NOT_FOUND
@@ -64,17 +99,7 @@ export class BookingService implements IBookingService {
       // throw new NotfoundError('Cannot found driver')
     }
 
-    // TODO Update order API
-    // const updateBookingResp = await Booking.update(
-    //   {
-    //     driverId: driver.id,
-    //     status: 'DRIVER_FOUND',
-    //     amount: pricing
-    //   },
-    //   {
-    //     where: { id: booking.id }
-    //   }
-    // )
+    // Update order API
     const updateOrderDto: IUpdateOrderInput = {
       id: order.id,
       driverId: driver.id,
@@ -88,16 +113,7 @@ export class BookingService implements IBookingService {
       console.log('error-----', error)
     }
 
-    // TODO Update driver login session API
-    // const updateDriverResp = await DriverLoginSession.update(
-    //   { drivingStatus: 'DRIVING' },
-    //   {
-    //     where: {
-    //       driverId: driver.id,
-    //       status: 'ONLINE'
-    //     }
-    //   }
-    // )
+    // Update driver login session API
     const updateDriverLoginSessionDto: IUpdateDriverLoginSession = {
       driverId: driver.id,
       workingStatus: DriverOnlineSessionWorkingStatusEnum.DRIVING
@@ -118,6 +134,7 @@ export class BookingService implements IBookingService {
   }
 
   async getSuitableDriver (order: IProcessBookingOrderDTO): Promise<any> {
+    console.log('getSuitableDriver here-----------')
     // TODO Find ALL driver with filter API
     // const availableDrivers = await Driver.findAll({
     //   where: {
@@ -145,7 +162,7 @@ export class BookingService implements IBookingService {
 
     const { driver, minDistance, totalPrice } = await this.getNearestDriver(order, availableDrivers)
     if (!driver) {
-      return null
+      return { driver: null }
     }
 
     return {
@@ -184,10 +201,6 @@ export class BookingService implements IBookingService {
         suitableDriverIdx = idx
       }
     })
-
-    if (minDistance === Number.MAX_SAFE_INTEGER) {
-      throw new Error('invalid lat long')
-    }
 
     if (suitableDriverIdx === -1) {
       return { driver: null }

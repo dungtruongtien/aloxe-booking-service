@@ -36,15 +36,18 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var booking_service_1 = require("../services/booking.service");
 var axios_1 = require("axios");
 var order_repository_1 = require("../repository/order/order.repository");
 var drive_repository_1 = require("../repository/driver/drive.repository");
+var drive_repository_2 = require("../repository/customer/drive.repository");
+var booking_service_1 = require("../services/booking.service");
+var socket_1 = require("../client/socket");
 var BookingRestController = (function () {
     function BookingRestController() {
         var _this = this;
         this.orderRepo = new order_repository_1.OrderRepository();
         this.driverRepo = new drive_repository_1.DriverRepository();
+        this.customerRepo = new drive_repository_2.CustomerRepository();
         this.processBookingOrder = function (req, res, next) { return __awaiter(_this, void 0, void 0, function () {
             var data;
             return __generator(this, function (_a) {
@@ -60,13 +63,14 @@ var BookingRestController = (function () {
                 }
             });
         }); };
-        this.bookingService = new booking_service_1.BookingService(this.orderRepo, this.driverRepo);
+        this.processBookingOrderSub = function () {
+            _this.bookingService.processBookingOrderSub().then(function () { }).catch(function () { });
+        };
+        this.bookingService = new booking_service_1.BookingService(this.orderRepo, this.driverRepo, this.customerRepo);
+        var realtimeSvc = new socket_1.RealtimeSvc();
+        this.bookingService.setRealtimeService(realtimeSvc);
     }
     return BookingRestController;
 }());
 exports.default = BookingRestController;
-var orderRepo = new order_repository_1.OrderRepository();
-var driverRepo = new drive_repository_1.DriverRepository();
-var bookingService = new booking_service_1.BookingService(orderRepo, driverRepo);
-bookingService.processBookingOrderSub().then(function () { }).catch(function () { });
 //# sourceMappingURL=booking.controller.rest.js.map

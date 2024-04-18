@@ -9,18 +9,3 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
-
-model User {
-  id          Int       @id @default(autoincrement())
-  fullName    String    @map("full_name")
-  phoneNumber String    @map("phone_number")
-  email       String    @db.VarChar(255)
-  address     String?
-  dob         DateTime?
-  role        Int //Staff, Customer, Driver
-  status      Int
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
-
-  @@map(name: "users")
-}
