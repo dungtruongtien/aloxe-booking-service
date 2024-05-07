@@ -1,7 +1,6 @@
 import Queue from 'bull'
 import { type IBookingService } from './booking.interface'
 import { toZonedTime } from 'date-fns-tz'
-import { getDistanceFromLatLonInKm } from '../../utils/distance'
 import { type IUpdateOrderInput, type IOrderRepo, OrderStatus } from '../../repository/order/order.interface'
 import {
   DriverOnlineSessionWorkingStatusEnum,
@@ -9,9 +8,9 @@ import {
   type IUpdateDriverLoginSession
 } from '../../repository/driver/drive.interface'
 import { type IProcessBookingOrderDTO } from './booking.dto'
-import { type IDriver } from '../../repository/driver/drive.schema'
 import { type ICustomerRepo } from '../../repository/customer/user.interface'
 import { type IRealtimeSvc } from '../../client/socket/interface'
+import { DriverPickingBasedLocationAndState, DriverPickingStrategy } from '../driver-pickup/driver_pickup.service'
 
 const BOOKING_QUEUE_NAME = 'aloxe_booking'
 const bookingQueue = new Queue(BOOKING_QUEUE_NAME)
@@ -30,6 +29,7 @@ export class BookingService implements IBookingService {
   private readonly driverRepo: IDriverRepo
   private readonly customerRepo: ICustomerRepo
   private realtimeSvc: IRealtimeSvc
+  private readonly driverPickingStrategy = new DriverPickingStrategy(new DriverPickingBasedLocationAndState())
   constructor (orderRepo: IOrderRepo, driverRepo: IDriverRepo, customerRepo: ICustomerRepo) {
     this.orderRepo = orderRepo
     this.driverRepo = driverRepo
@@ -85,7 +85,11 @@ export class BookingService implements IBookingService {
   }
 
   handleAssignDriverForBooking = async (order: IProcessBookingOrderDTO): Promise<IAssignDriverForBookingRes | null> => {
-    const { driver, minDistance, totalPrice } = await this.getSuitableDriver(order)
+    const availableDrivers = await this.driverRepo.getAvailableDrivers(order.orderDetail.vehicleType)
+    if (!availableDrivers || availableDrivers.length === 0) {
+      return null
+    }
+    const { driver, minDistance, totalPrice } = await this.driverPickingStrategy.pickup(order, availableDrivers)
     if (!driver) {
       console.log('driver-----', driver)
       // await this.realtimeSvc.broadcast(order.id.toString(), JSON.stringify({ test: 'test' }))
@@ -133,95 +137,95 @@ export class BookingService implements IBookingService {
     }
   }
 
-  async getSuitableDriver (order: IProcessBookingOrderDTO): Promise<any> {
-    console.log('getSuitableDriver here-----------')
-    // TODO Find ALL driver with filter API
-    // const availableDrivers = await Driver.findAll({
-    //   where: {
-    //     vehicleType: booking.bookingDetail.vehicleType
-    //   },
-    //   include: [
-    //     {
-    //       model: DriverLogginSession,
-    //       as: 'driverLoginSession',
-    //       where: {
-    //         status: 'ONLINE',
-    //         drivingStatus: 'WAITING_FOR_CUSTOMER'
-    //       }
-    //     },
-    //     {
-    //       model: Vehicle,
-    //       as: 'vehicle'
-    //     }
-    //   ]
-    // })
-    const availableDrivers = await this.driverRepo.getAvailableDrivers(order.orderDetail.vehicleType)
-    if (!availableDrivers || availableDrivers.length === 0) {
-      return { driver: null }
-    }
+  // async getSuitableDriver (order: IProcessBookingOrderDTO): Promise<any> {
+  //   console.log('getSuitableDriver here-----------')
+  //   // TODO Find ALL driver with filter API
+  //   // const availableDrivers = await Driver.findAll({
+  //   //   where: {
+  //   //     vehicleType: booking.bookingDetail.vehicleType
+  //   //   },
+  //   //   include: [
+  //   //     {
+  //   //       model: DriverLogginSession,
+  //   //       as: 'driverLoginSession',
+  //   //       where: {
+  //   //         status: 'ONLINE',
+  //   //         drivingStatus: 'WAITING_FOR_CUSTOMER'
+  //   //       }
+  //   //     },
+  //   //     {
+  //   //       model: Vehicle,
+  //   //       as: 'vehicle'
+  //   //     }
+  //   //   ]
+  //   // })
+  //   const availableDrivers = await this.driverRepo.getAvailableDrivers(order.orderDetail.vehicleType)
+  //   if (!availableDrivers || availableDrivers.length === 0) {
+  //     return { driver: null }
+  //   }
 
-    const { driver, minDistance, totalPrice } = await this.getNearestDriver(order, availableDrivers)
-    if (!driver) {
-      return { driver: null }
-    }
+  //   const { driver, minDistance, totalPrice } = await this.getNearestDriver(order, availableDrivers)
+  //   if (!driver) {
+  //     return { driver: null }
+  //   }
 
-    return {
-      driver,
-      minDistance,
-      totalPrice
-    }
-  }
+  //   return {
+  //     driver,
+  //     minDistance,
+  //     totalPrice
+  //   }
+  // }
 
-  async getNearestDriver (order: IProcessBookingOrderDTO, availableDrivers: IDriver[]): Promise<any> {
-    let suitableDriverIdx = -1
-    let minDistance = Number.MAX_SAFE_INTEGER
+  // async getNearestDriver (order: IProcessBookingOrderDTO, availableDrivers: IDriver[]): Promise<any> {
+  //   let suitableDriverIdx = -1
+  //   let minDistance = Number.MAX_SAFE_INTEGER
 
-    availableDrivers.forEach((driver: IDriver, idx: number) => {
-      const { orderDetail } = order
-      const { onlineSession } = driver
-      if (!onlineSession) {
-        return null
-      }
+  //   availableDrivers.forEach((driver: IDriver, idx: number) => {
+  //     const { orderDetail } = order
+  //     const { onlineSession } = driver
+  //     if (!onlineSession) {
+  //       return null
+  //     }
 
-      const userPosition = {
-        lat: orderDetail.pickupLatitude,
-        long: orderDetail.pickupLongitude
-      }
+  //     const userPosition = {
+  //       lat: orderDetail.pickupLatitude,
+  //       long: orderDetail.pickupLongitude
+  //     }
 
-      const driverPosition = {
-        lat: parseFloat(onlineSession.currentLatitude),
-        long: parseFloat(onlineSession.currentLongitude)
-      }
+  //     const driverPosition = {
+  //       lat: parseFloat(onlineSession.currentLatitude),
+  //       long: parseFloat(onlineSession.currentLongitude)
+  //     }
 
-      // Calculate distance from driver and user
-      const distanceFromUserToDriver = getDistanceFromLatLonInKm(userPosition, driverPosition)
-      console.log('distanceFromUserToDriver----', distanceFromUserToDriver)
-      if (distanceFromUserToDriver < minDistance) {
-        minDistance = distanceFromUserToDriver
-        suitableDriverIdx = idx
-      }
-    })
+  //     // Calculate distance from driver and user
+  //     const distanceFromUserToDriver = getDistanceFromLatLonInKm(userPosition, driverPosition)
+  //     console.log('distanceFromUserToDriver----', distanceFromUserToDriver)
+  //     if (distanceFromUserToDriver < minDistance) {
+  //       minDistance = distanceFromUserToDriver
+  //       suitableDriverIdx = idx
+  //     }
+  //   })
 
-    if (suitableDriverIdx === -1) {
-      return { driver: null }
-    }
+  //   if (suitableDriverIdx === -1) {
+  //     return { driver: null }
+  //   }
 
-    const { orderDetail } = order
-    const startPosition = {
-      lat: orderDetail.pickupLatitude,
-      long: orderDetail.pickupLongitude
-    }
-    const endPosition = {
-      lat: orderDetail.returnLatitude,
-      long: orderDetail.returnLongitude
-    }
-    const startToEndDistance = getDistanceFromLatLonInKm(startPosition, endPosition)
-    const totalPrice = startToEndDistance * 10000 // 10000 each km
+  //   const { orderDetail } = order
+  //   const startPosition = {
+  //     lat: orderDetail.pickupLatitude,
+  //     long: orderDetail.pickupLongitude
+  //   }
+  //   const endPosition = {
+  //     lat: orderDetail.returnLatitude,
+  //     long: orderDetail.returnLongitude
+  //   }
+  //   const startToEndDistance = getDistanceFromLatLonInKm(startPosition, endPosition)
+  //   const totalPrice = startToEndDistance * 10000 // 10000 each km
 
-    return {
-      driver: availableDrivers[suitableDriverIdx],
-      minDistance,
-      totalPrice
-    }
-  }
+  //   return {
+  //     driver: availableDrivers[suitableDriverIdx],
+  //     minDistance,
+  //     totalPrice
+  //   }
+  // }
 }

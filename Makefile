@@ -9,3 +9,7 @@ run-prisma-generate:
 .PHONY: run-dev
 run-dev:
 	npm run dev
+
+.PHONY: run-migrate-init
+run-migrate-init:
+	npx prisma migrate dev --name init_schema
