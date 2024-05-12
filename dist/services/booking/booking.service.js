@@ -73,7 +73,12 @@ var BookingService = (function () {
                     case 1:
                         availableDrivers = _b.sent();
                         if (!availableDrivers || availableDrivers.length === 0) {
-                            return [2, null];
+                            return [2, {
+                                    driver: { id: 0 },
+                                    minDistance: 0,
+                                    totalPrice: 0,
+                                    status: 'DRIVER_NOT_FOUND'
+                                }];
                         }
                         return [4, this.driverPickingStrategy.pickup(order, availableDrivers)];
                     case 2:
@@ -157,25 +162,47 @@ var BookingService = (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4, bookingQueue.process(function (job, done) { return __awaiter(_this, void 0, void 0, function () {
-                            var input;
+                            var input, resp, customer, error_2;
                             return __generator(this, function (_a) {
-                                try {
-                                    input = job.data;
-                                    this.realtimeSvc.broadcast('test_evt', JSON.stringify({
-                                        message: 'Bạn có 1 đơn đặt xe',
-                                        booking: __assign(__assign({}, input), { status: 'DRIVER_FOUND', minDistance: 100 }),
-                                        customer: {
-                                            fullName: 'customer.user.fullName',
-                                            phoneNumber: 'customer.user.phoneNumber'
+                                switch (_a.label) {
+                                    case 0:
+                                        _a.trys.push([0, 3, , 4]);
+                                        input = job.data;
+                                        return [4, this.handleAssignDriverForBooking(input)];
+                                    case 1:
+                                        resp = _a.sent();
+                                        console.log('resp-------', resp);
+                                        if (!(resp === null || resp === void 0 ? void 0 : resp.driver) || resp.driver.id === 0) {
+                                            this.realtimeSvc.broadcast(input.id.toString(), JSON.stringify(resp));
+                                            done();
+                                            return [2];
                                         }
-                                    }));
-                                    done();
+                                        if (input.supportStaffId) {
+                                            this.realtimeSvc.broadcast(input.supportStaffId.toString(), 'Hello');
+                                        }
+                                        return [4, this.customerRepo.getCustomer(input.customerId)];
+                                    case 2:
+                                        customer = _a.sent();
+                                        if (customer) {
+                                            this.realtimeSvc.broadcast(input.id.toString(), 'Hello');
+                                            this.realtimeSvc.broadcast(resp.driver.id.toString(), JSON.stringify({
+                                                message: 'Bạn có 1 đơn đặt xe',
+                                                booking: __assign(__assign({}, input), { status: 'DRIVER_FOUND', minDistance: resp.minDistance }),
+                                                customer: {
+                                                    fullName: customer.user.fullName,
+                                                    phoneNumber: customer.user.phoneNumber
+                                                }
+                                            }));
+                                        }
+                                        done();
+                                        return [3, 4];
+                                    case 3:
+                                        error_2 = _a.sent();
+                                        console.log('error------', error_2);
+                                        done();
+                                        return [3, 4];
+                                    case 4: return [2];
                                 }
-                                catch (error) {
-                                    console.log('error------', error);
-                                    done();
-                                }
-                                return [2];
                             });
                         }); })];
                     case 1:

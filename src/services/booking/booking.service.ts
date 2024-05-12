@@ -56,35 +56,29 @@ export class BookingService implements IBookingService {
       // Job is object of full order
       try {
         const input: IProcessBookingOrderDTO = job.data
-        this.realtimeSvc.broadcast('test_evt', JSON.stringify({
-          message: 'Bạn có 1 đơn đặt xe',
-          booking: { ...input, status: 'DRIVER_FOUND', minDistance: 100 },
-          customer: {
-            fullName: 'customer.user.fullName',
-            phoneNumber: 'customer.user.phoneNumber'
-            // avatar: customer.user.avatar
-          }
-        }))
-        // const resp = await this.handleAssignDriverForBooking(input)
-        // console.log('resp-------', resp)
-        // if (input.supportStaffId) {
-        //   this.realtimeSvc.broadcast(input.supportStaffId.toString(), 'Hello')
-        // }
-        // if (resp?.driver) {
-        //   const customer = await this.customerRepo.getCustomer(input.customerId)
-        //   if (customer) {
-        //     this.realtimeSvc.broadcast(input.id.toString(), 'Hello')
-        //     this.realtimeSvc.broadcast(resp.driver.id.toString(), JSON.stringify({
-        //       message: 'Bạn có 1 đơn đặt xe',
-        //       booking: { ...input, status: 'DRIVER_FOUND', minDistance: resp.minDistance },
-        //       customer: {
-        //         fullName: customer.user.fullName,
-        //         phoneNumber: customer.user.phoneNumber
-        //         // avatar: customer.user.avatar
-        //       }
-        //     }))
-        //   }
-        // }
+        const resp = await this.handleAssignDriverForBooking(input)
+        console.log('resp-------', resp)
+        if (!resp?.driver || resp.driver.id === 0) {
+          this.realtimeSvc.broadcast(input.id.toString(), JSON.stringify(resp))
+          done()
+          return
+        }
+        if (input.supportStaffId) {
+          this.realtimeSvc.broadcast(input.supportStaffId.toString(), 'Hello')
+        }
+        const customer = await this.customerRepo.getCustomer(input.customerId)
+        if (customer) {
+          this.realtimeSvc.broadcast(input.id.toString(), 'Hello')
+          this.realtimeSvc.broadcast(resp.driver.id.toString(), JSON.stringify({
+            message: 'Bạn có 1 đơn đặt xe',
+            booking: { ...input, status: 'DRIVER_FOUND', minDistance: resp.minDistance },
+            customer: {
+              fullName: customer.user.fullName,
+              phoneNumber: customer.user.phoneNumber
+              // avatar: customer.user.avatar
+            }
+          }))
+        }
         done()
       } catch (error) {
         console.log('error------', error)
@@ -96,7 +90,12 @@ export class BookingService implements IBookingService {
   handleAssignDriverForBooking = async (order: IProcessBookingOrderDTO): Promise<IAssignDriverForBookingRes | null> => {
     const availableDrivers = await this.driverRepo.getAvailableDrivers(order.orderDetail.vehicleType)
     if (!availableDrivers || availableDrivers.length === 0) {
-      return null
+      return {
+        driver: { id: 0 },
+        minDistance: 0,
+        totalPrice: 0,
+        status: 'DRIVER_NOT_FOUND'
+      }
     }
     const { driver, minDistance, totalPrice } = await this.driverPickingStrategy.pickup(order, availableDrivers)
     if (!driver) {

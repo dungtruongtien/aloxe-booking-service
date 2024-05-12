@@ -67,10 +67,8 @@ var BookingRestController = (function () {
             _this.bookingService.processBookingOrderSub().then(function () { }).catch(function () { });
         };
         this.bookingService = new booking_service_1.BookingService(this.orderRepo, this.driverRepo, this.customerRepo);
-        if (!this.realtimeSvc) {
-            this.realtimeSvc = new socket_1.RealtimeSvc();
-            this.bookingService.setRealtimeService(this.realtimeSvc);
-        }
+        this.realtimeSvc = new socket_1.RealtimeSvc();
+        this.bookingService.setRealtimeService(this.realtimeSvc);
     }
     return BookingRestController;
 }());

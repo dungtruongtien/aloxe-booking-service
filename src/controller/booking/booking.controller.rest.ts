@@ -17,10 +17,8 @@ export default class BookingRestController implements IBookingRestController {
   private readonly realtimeSvc: IRealtimeSvc
   constructor () {
     this.bookingService = new BookingService(this.orderRepo, this.driverRepo, this.customerRepo)
-    if (!this.realtimeSvc) {
-      this.realtimeSvc = new RealtimeSvc()
-      this.bookingService.setRealtimeService(this.realtimeSvc)
-    }
+    this.realtimeSvc = new RealtimeSvc()
+    this.bookingService.setRealtimeService(this.realtimeSvc)
   }
 
   processBookingOrder = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
