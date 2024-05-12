@@ -4,17 +4,29 @@ import { type DefaultEventsMap } from 'socket.io/dist/typed-events'
 import { type IRealtimeSvc } from './interface'
 import { createSocketServer } from '../../server'
 
+let GLOBAL_SOCKET_IO: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>
+
 export class RealtimeSvc implements IRealtimeSvc {
   private socketio: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>
   private readonly server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>
 
   constructor () {
-    this.socketio = new Server(createSocketServer(), {
-      path: '/realtime/booking-notify',
-      cors: {
-        origin: '*'
-      }
-    })
+    if (!GLOBAL_SOCKET_IO) {
+      GLOBAL_SOCKET_IO = new Server(createSocketServer(), {
+        path: '/realtime/booking-notify',
+        cors: {
+          origin: '*'
+        }
+      })
+      this.socketio = GLOBAL_SOCKET_IO
+      this.socketio.engine.on('connection_error', (err) => {
+        console.log(err.req) // the request object
+        console.log(err.code) // the error code, for example 1
+        console.log(err.message) // the error message, for example "Session ID unknown"
+        console.log(err.context) // some additional error context
+      })
+      this.onConnection()
+    }
   }
 
   connect = (): any => {

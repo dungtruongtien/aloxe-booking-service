@@ -8,16 +8,19 @@ import { type IProcessBookingOrderDTO } from '../../services/booking/booking.dto
 import { CustomerRepository } from '../../repository/customer/drive.repository'
 import { BookingService } from '../../services/booking/booking.service'
 import { RealtimeSvc } from '../../client/socket'
-
+import { type IRealtimeSvc } from '../../client/socket/interface'
 export default class BookingRestController implements IBookingRestController {
   private readonly bookingService: IBookingService
   private readonly orderRepo = new OrderRepository()
   private readonly driverRepo = new DriverRepository()
   private readonly customerRepo = new CustomerRepository()
+  private readonly realtimeSvc: IRealtimeSvc
   constructor () {
     this.bookingService = new BookingService(this.orderRepo, this.driverRepo, this.customerRepo)
-    const realtimeSvc = new RealtimeSvc()
-    this.bookingService.setRealtimeService(realtimeSvc)
+    if (!this.realtimeSvc) {
+      this.realtimeSvc = new RealtimeSvc()
+      this.bookingService.setRealtimeService(this.realtimeSvc)
+    }
   }
 
   processBookingOrder = async (req: Request, res: Response, next: NextFunction): Promise<any> => {

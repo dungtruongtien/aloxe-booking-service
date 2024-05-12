@@ -56,26 +56,35 @@ export class BookingService implements IBookingService {
       // Job is object of full order
       try {
         const input: IProcessBookingOrderDTO = job.data
-        const resp = await this.handleAssignDriverForBooking(input)
-        console.log('resp-------', resp)
-        if (input.supportStaffId) {
-          this.realtimeSvc.broadcast(input.supportStaffId.toString(), 'Hello')
-        }
-        if (resp?.driver) {
-          const customer = await this.customerRepo.getCustomer(input.customerId)
-          if (customer) {
-            this.realtimeSvc.broadcast(input.id.toString(), 'Hello')
-            this.realtimeSvc.broadcast(resp.driver.id.toString(), JSON.stringify({
-              message: 'Bạn có 1 đơn đặt xe',
-              booking: { ...input, status: 'DRIVER_FOUND', minDistance: resp.minDistance },
-              customer: {
-                fullName: customer.user.fullName,
-                phoneNumber: customer.user.phoneNumber
-                // avatar: customer.user.avatar
-              }
-            }))
+        this.realtimeSvc.broadcast('test_evt', JSON.stringify({
+          message: 'Bạn có 1 đơn đặt xe',
+          booking: { ...input, status: 'DRIVER_FOUND', minDistance: 100 },
+          customer: {
+            fullName: 'customer.user.fullName',
+            phoneNumber: 'customer.user.phoneNumber'
+            // avatar: customer.user.avatar
           }
-        }
+        }))
+        // const resp = await this.handleAssignDriverForBooking(input)
+        // console.log('resp-------', resp)
+        // if (input.supportStaffId) {
+        //   this.realtimeSvc.broadcast(input.supportStaffId.toString(), 'Hello')
+        // }
+        // if (resp?.driver) {
+        //   const customer = await this.customerRepo.getCustomer(input.customerId)
+        //   if (customer) {
+        //     this.realtimeSvc.broadcast(input.id.toString(), 'Hello')
+        //     this.realtimeSvc.broadcast(resp.driver.id.toString(), JSON.stringify({
+        //       message: 'Bạn có 1 đơn đặt xe',
+        //       booking: { ...input, status: 'DRIVER_FOUND', minDistance: resp.minDistance },
+        //       customer: {
+        //         fullName: customer.user.fullName,
+        //         phoneNumber: customer.user.phoneNumber
+        //         // avatar: customer.user.avatar
+        //       }
+        //     }))
+        //   }
+        // }
         done()
       } catch (error) {
         console.log('error------', error)

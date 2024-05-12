@@ -5,25 +5,17 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Attach by Process ID",
-      "request": "attach",
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program",
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "type": "node"
+      "program": "${workspaceFolder}/src/index.ts",
+      "preLaunchTask": "tsc: build - tsconfig.json",
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js"
+      ]
     }
-    // {
-    //   "type": "node",
-    //   "request": "launch",
-    //   "name": "Launch Program",
-    //   "skipFiles": [
-    //     "<node_internals>/**"
-    //   ],
-    //   "program": "${workspaceFolder}/src/index.ts",
-    //   "preLaunchTask": "tsc: build - tsconfig.json",
-    //   "outFiles": [
-    //     "${workspaceFolder}/dist/**/*.js"
-    //   ]
-    // }
   ]
 }
