@@ -53,63 +53,70 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BookingService = void 0;
 var bull_1 = __importDefault(require("bull"));
 var date_fns_tz_1 = require("date-fns-tz");
-var distance_1 = require("../../utils/distance");
 var order_interface_1 = require("../../repository/order/order.interface");
 var drive_interface_1 = require("../../repository/driver/drive.interface");
+var driver_pickup_service_1 = require("../driver-pickup/driver_pickup.service");
 var BOOKING_QUEUE_NAME = 'aloxe_booking';
 var bookingQueue = new bull_1.default(BOOKING_QUEUE_NAME);
 var BookingService = (function () {
     function BookingService(orderRepo, driverRepo, customerRepo) {
         var _this = this;
+        this.driverPickingStrategy = new driver_pickup_service_1.DriverPickingStrategy(new driver_pickup_service_1.DriverPickingBasedLocationAndState());
         this.setRealtimeService = function (realtimeSvc) {
             _this.realtimeSvc = realtimeSvc;
         };
         this.handleAssignDriverForBooking = function (order) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, driver, minDistance, totalPrice, updateOrderDto_1, updateOrderDto, updateOrderResp, error_1, updateDriverLoginSessionDto;
+            var availableDrivers, _a, driver, minDistance, totalPrice, updateOrderDto_1, updateOrderDto, updateOrderResp, error_1, updateDriverLoginSessionDto;
             return __generator(this, function (_b) {
                 switch (_b.label) {
-                    case 0: return [4, this.getSuitableDriver(order)];
+                    case 0: return [4, this.driverRepo.getAvailableDrivers(order.orderDetail.vehicleType)];
                     case 1:
+                        availableDrivers = _b.sent();
+                        if (!availableDrivers || availableDrivers.length === 0) {
+                            return [2, null];
+                        }
+                        return [4, this.driverPickingStrategy.pickup(order, availableDrivers)];
+                    case 2:
                         _a = _b.sent(), driver = _a.driver, minDistance = _a.minDistance, totalPrice = _a.totalPrice;
-                        if (!!driver) return [3, 4];
+                        if (!!driver) return [3, 5];
                         console.log('driver-----', driver);
                         return [4, this.realtimeSvc.broadcast('test_evt', JSON.stringify({ test: 'test' }))];
-                    case 2:
+                    case 3:
                         _b.sent();
                         updateOrderDto_1 = {
                             id: order.id,
                             status: order_interface_1.OrderStatus.DRIVER_NOT_FOUND
                         };
                         return [4, this.orderRepo.updateOrder(updateOrderDto_1)];
-                    case 3:
+                    case 4:
                         _b.sent();
                         return [2, null];
-                    case 4:
+                    case 5:
                         updateOrderDto = {
                             id: order.id,
                             driverId: driver.id,
                             status: order_interface_1.OrderStatus.DRIVER_FOUND,
                             totalPrice: totalPrice
                         };
-                        _b.label = 5;
-                    case 5:
-                        _b.trys.push([5, 7, , 8]);
-                        return [4, this.orderRepo.updateOrder(updateOrderDto)];
+                        _b.label = 6;
                     case 6:
+                        _b.trys.push([6, 8, , 9]);
+                        return [4, this.orderRepo.updateOrder(updateOrderDto)];
+                    case 7:
                         updateOrderResp = _b.sent();
                         console.log('updateOrderResp-----', updateOrderResp);
-                        return [3, 8];
-                    case 7:
+                        return [3, 9];
+                    case 8:
                         error_1 = _b.sent();
                         console.log('error-----', error_1);
-                        return [3, 8];
-                    case 8:
+                        return [3, 9];
+                    case 9:
                         updateDriverLoginSessionDto = {
                             driverId: driver.id,
                             workingStatus: drive_interface_1.DriverOnlineSessionWorkingStatusEnum.DRIVING
                         };
                         return [4, this.driverRepo.updateDriverOnlineSession(updateDriverLoginSessionDto)];
-                    case 9:
+                    case 10:
                         _b.sent();
                         return [2, {
                                 driver: driver,
@@ -195,83 +202,6 @@ var BookingService = (function () {
                         _a.sent();
                         return [2];
                 }
-            });
-        });
-    };
-    BookingService.prototype.getSuitableDriver = function (order) {
-        return __awaiter(this, void 0, void 0, function () {
-            var availableDrivers, _a, driver, minDistance, totalPrice;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        console.log('getSuitableDriver here-----------');
-                        return [4, this.driverRepo.getAvailableDrivers(order.orderDetail.vehicleType)];
-                    case 1:
-                        availableDrivers = _b.sent();
-                        if (!availableDrivers || availableDrivers.length === 0) {
-                            return [2, { driver: null }];
-                        }
-                        return [4, this.getNearestDriver(order, availableDrivers)];
-                    case 2:
-                        _a = _b.sent(), driver = _a.driver, minDistance = _a.minDistance, totalPrice = _a.totalPrice;
-                        if (!driver) {
-                            return [2, { driver: null }];
-                        }
-                        return [2, {
-                                driver: driver,
-                                minDistance: minDistance,
-                                totalPrice: totalPrice
-                            }];
-                }
-            });
-        });
-    };
-    BookingService.prototype.getNearestDriver = function (order, availableDrivers) {
-        return __awaiter(this, void 0, void 0, function () {
-            var suitableDriverIdx, minDistance, orderDetail, startPosition, endPosition, startToEndDistance, totalPrice;
-            return __generator(this, function (_a) {
-                suitableDriverIdx = -1;
-                minDistance = Number.MAX_SAFE_INTEGER;
-                availableDrivers.forEach(function (driver, idx) {
-                    var orderDetail = order.orderDetail;
-                    var onlineSession = driver.onlineSession;
-                    if (!onlineSession) {
-                        return null;
-                    }
-                    var userPosition = {
-                        lat: orderDetail.pickupLatitude,
-                        long: orderDetail.pickupLongitude
-                    };
-                    var driverPosition = {
-                        lat: parseFloat(onlineSession.currentLatitude),
-                        long: parseFloat(onlineSession.currentLongitude)
-                    };
-                    var distanceFromUserToDriver = (0, distance_1.getDistanceFromLatLonInKm)(userPosition, driverPosition);
-                    console.log('distanceFromUserToDriver----', distanceFromUserToDriver);
-                    if (distanceFromUserToDriver < minDistance) {
-                        minDistance = distanceFromUserToDriver;
-                        suitableDriverIdx = idx;
-                    }
-                });
-                if (suitableDriverIdx === -1) {
-                    return [2, { driver: null }];
-                }
-                orderDetail = order.orderDetail;
-                startPosition = {
-                    lat: orderDetail.pickupLatitude,
-                    long: orderDetail.pickupLongitude
-                };
-                endPosition = {
-                    lat: orderDetail.returnLatitude,
-                    long: orderDetail.returnLongitude
-                };
-                startToEndDistance = (0, distance_1.getDistanceFromLatLonInKm)(startPosition, endPosition);
-                totalPrice = startToEndDistance * 10000;
-                return [2, {
-                        driver: availableDrivers[suitableDriverIdx],
-                        minDistance: minDistance,
-                        totalPrice: totalPrice
-                    }];
             });
         });
     };
