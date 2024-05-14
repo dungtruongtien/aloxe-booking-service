@@ -5,12 +5,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createNotificationRoute = void 0;
 var express_1 = __importDefault(require("express"));
-var booking_controller_rest_1 = __importDefault(require("../controller/booking/booking.controller.rest"));
+var notification_controller_rest_1 = __importDefault(require("../controller/notification/notification.controller.rest"));
 var createNotificationRoute = function () {
     var router = express_1.default.Router();
-    var bookingController = new booking_controller_rest_1.default();
-    router.post('/broadcast', bookingController.processBookingOrder.bind(bookingController));
-    bookingController.processBookingOrderSub();
+    var notificationRestController = new notification_controller_rest_1.default();
+    router.post('/broadcast', notificationRestController.broadcast.bind(notificationRestController));
     return router;
 };
 exports.createNotificationRoute = createNotificationRoute;

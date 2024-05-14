@@ -54,7 +54,7 @@ var CustomerRepository = (function () {
                         config = {
                             method: 'get',
                             maxBodyLength: Infinity,
-                            url: "http://localhost:4003/api/customers/".concat(id),
+                            url: "http://localhost:4003/api/users/".concat(id),
                             headers: {
                                 authorization: constant_1.INTERNAL_TOKEN
                             }

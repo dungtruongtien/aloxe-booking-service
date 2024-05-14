@@ -68,13 +68,17 @@ export class BookingService implements IBookingService {
         }
         const customer = await this.customerRepo.getCustomer(input.customerId)
         if (customer) {
-          this.realtimeSvc.broadcast(input.id.toString(), 'Hello')
+          this.realtimeSvc.broadcast(input.id.toString(), JSON.stringify({
+            ...input,
+            status: 'DRIVER_FOUND',
+            minDistance: resp.minDistance
+          }))
           this.realtimeSvc.broadcast(resp.driver.id.toString(), JSON.stringify({
             message: 'Bạn có 1 đơn đặt xe',
             booking: { ...input, status: 'DRIVER_FOUND', minDistance: resp.minDistance },
             customer: {
-              fullName: customer.user.fullName,
-              phoneNumber: customer.user.phoneNumber
+              fullName: customer.fullName,
+              phoneNumber: customer.phoneNumber
               // avatar: customer.user.avatar
             }
           }))

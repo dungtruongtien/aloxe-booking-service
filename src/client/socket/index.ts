@@ -13,7 +13,7 @@ export class RealtimeSvc implements IRealtimeSvc {
   constructor () {
     if (!GLOBAL_SOCKET_IO) {
       GLOBAL_SOCKET_IO = new Server(createSocketServer(), {
-        path: '/realtime/booking-notify',
+        path: '/booking-event',
         cors: {
           origin: '*'
         }
@@ -26,6 +26,8 @@ export class RealtimeSvc implements IRealtimeSvc {
         console.log(err.context) // some additional error context
       })
       this.onConnection()
+    } else {
+      this.socketio = GLOBAL_SOCKET_IO
     }
   }
 
@@ -38,7 +40,7 @@ export class RealtimeSvc implements IRealtimeSvc {
   }
 
   onConnection = (): any => {
-    if (!this.socketio) {
+    if (!GLOBAL_SOCKET_IO) {
       this.connect()
     }
     this.socketio.on('connection', (socket) => {
@@ -48,14 +50,14 @@ export class RealtimeSvc implements IRealtimeSvc {
   }
 
   broadcast = (evt: string, msg: string): any => {
-    if (!this.socketio) {
+    if (!GLOBAL_SOCKET_IO) {
       this.connect()
     }
     this.socketio.emit(evt, msg)
   }
 
   listen = (evt: string, callback: (msg: string) => any): any => {
-    if (!this.socketio) {
+    if (!GLOBAL_SOCKET_IO) {
       this.connect()
     }
     this.socketio.emit(evt, callback)

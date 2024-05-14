@@ -8,7 +8,7 @@ export class CustomerRepository implements ICustomerRepo {
     const config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: `http://localhost:4003/api/customers/${id}`,
+      url: `http://localhost:4003/api/users/${id}`,
       headers: {
         authorization: INTERNAL_TOKEN
       }

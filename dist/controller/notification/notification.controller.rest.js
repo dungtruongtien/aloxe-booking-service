@@ -37,22 +37,28 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var axios_1 = require("axios");
+var socket_1 = require("../../client/socket");
 var NotificationRestController = (function () {
-    function NotificationRestController(notificationService) {
+    function NotificationRestController() {
         var _this = this;
         this.broadcast = function (req, res, next) { return __awaiter(_this, void 0, void 0, function () {
             var msgId, content;
             return __generator(this, function (_a) {
-                msgId = req.body.msgId;
-                content = req.body.content;
-                this.notificationService.broadcast(msgId, content);
-                res.status(axios_1.HttpStatusCode.Ok).json({
-                    status: 'SUCCESS'
-                });
-                return [2];
+                switch (_a.label) {
+                    case 0:
+                        msgId = req.body.msgId;
+                        content = req.body.content;
+                        return [4, this.realtimeSvc.broadcast(msgId, content)];
+                    case 1:
+                        _a.sent();
+                        res.status(axios_1.HttpStatusCode.Ok).json({
+                            status: 'SUCCESS'
+                        });
+                        return [2];
+                }
             });
         }); };
-        this.notificationService = notificationService;
+        this.realtimeSvc = new socket_1.RealtimeSvc();
     }
     return NotificationRestController;
 }());

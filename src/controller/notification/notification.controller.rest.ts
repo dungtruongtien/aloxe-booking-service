@@ -1,19 +1,19 @@
 import { type Request, type Response, type NextFunction } from 'express'
 import { type INotificationRestController } from './notification.interface'
-import { type INotificationService } from '../../services/notification/notification.interface'
 import { HttpStatusCode } from 'axios'
+import { RealtimeSvc } from '../../client/socket'
 
 export default class NotificationRestController implements INotificationRestController {
-  private readonly notificationService: INotificationService
+  private readonly realtimeSvc: RealtimeSvc
 
-  constructor (notificationService: INotificationService) {
-    this.notificationService = notificationService
+  constructor () {
+    this.realtimeSvc = new RealtimeSvc()
   }
 
   broadcast = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     const msgId = req.body.msgId
     const content = req.body.content
-    this.notificationService.broadcast(msgId as string, content as string)
+    await this.realtimeSvc.broadcast(msgId as string, content as string)
     res.status(HttpStatusCode.Ok).json({
       status: 'SUCCESS'
     })

@@ -184,13 +184,13 @@ var BookingService = (function () {
                                     case 2:
                                         customer = _a.sent();
                                         if (customer) {
-                                            this.realtimeSvc.broadcast(input.id.toString(), 'Hello');
+                                            this.realtimeSvc.broadcast(input.id.toString(), JSON.stringify(__assign(__assign({}, input), { status: 'DRIVER_FOUND', minDistance: resp.minDistance })));
                                             this.realtimeSvc.broadcast(resp.driver.id.toString(), JSON.stringify({
                                                 message: 'Bạn có 1 đơn đặt xe',
                                                 booking: __assign(__assign({}, input), { status: 'DRIVER_FOUND', minDistance: resp.minDistance }),
                                                 customer: {
-                                                    fullName: customer.user.fullName,
-                                                    phoneNumber: customer.user.phoneNumber
+                                                    fullName: customer.fullName,
+                                                    phoneNumber: customer.phoneNumber
                                                 }
                                             }));
                                         }

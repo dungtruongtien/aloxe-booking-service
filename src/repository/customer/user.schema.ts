@@ -6,6 +6,8 @@ export interface ICustomer {
   createdAt: Date
   updatedAt: Date
   user: IUser
+  fullName: string
+  phoneNumber: string
 }
 
 export interface IUser {

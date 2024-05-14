@@ -15,7 +15,7 @@ var RealtimeSvc = (function () {
             });
         };
         this.onConnection = function () {
-            if (!_this.socketio) {
+            if (!GLOBAL_SOCKET_IO) {
                 _this.connect();
             }
             _this.socketio.on('connection', function (socket) {
@@ -24,20 +24,20 @@ var RealtimeSvc = (function () {
             });
         };
         this.broadcast = function (evt, msg) {
-            if (!_this.socketio) {
+            if (!GLOBAL_SOCKET_IO) {
                 _this.connect();
             }
             _this.socketio.emit(evt, msg);
         };
         this.listen = function (evt, callback) {
-            if (!_this.socketio) {
+            if (!GLOBAL_SOCKET_IO) {
                 _this.connect();
             }
             _this.socketio.emit(evt, callback);
         };
         if (!GLOBAL_SOCKET_IO) {
             GLOBAL_SOCKET_IO = new socket_io_1.Server((0, server_1.createSocketServer)(), {
-                path: '/realtime/booking-notify',
+                path: '/booking-event',
                 cors: {
                     origin: '*'
                 }
@@ -50,6 +50,9 @@ var RealtimeSvc = (function () {
                 console.log(err.context);
             });
             this.onConnection();
+        }
+        else {
+            this.socketio = GLOBAL_SOCKET_IO;
         }
     }
     return RealtimeSvc;

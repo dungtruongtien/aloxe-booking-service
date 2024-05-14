@@ -1,15 +1,13 @@
 /* eslint @typescript-eslint/no-unsafe-argument: 0 */ // --> OFF
 
 import express, { type Router } from 'express'
-import BookingRestController from '../controller/booking/booking.controller.rest'
+import NotificationRestController from '../controller/notification/notification.controller.rest'
 
 export const createNotificationRoute = (): Router => {
   const router = express.Router()
 
-  const bookingController = new BookingRestController()
+  const notificationRestController = new NotificationRestController()
 
-  router.post('/broadcast', bookingController.processBookingOrder.bind(bookingController))
-
-  bookingController.processBookingOrderSub()
+  router.post('/broadcast', notificationRestController.broadcast.bind(notificationRestController))
   return router
 }
