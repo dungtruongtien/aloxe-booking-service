@@ -46,6 +46,7 @@ export class BookingService implements IBookingService {
     if (input.startTime) {
       const nowInVN = toZonedTime(new Date(), 'Asia/Ho_Chi_Minh')
       const startTimeInVN = toZonedTime(new Date(input.startTime), 'Asia/Ho_Chi_Minh')
+      console.log('nowInVN, startTimeInVN----', nowInVN, startTimeInVN)
       delayInMilliseconds = startTimeInVN.getTime() - nowInVN.getTime()
     }
     if (delayInMilliseconds < 0) {
