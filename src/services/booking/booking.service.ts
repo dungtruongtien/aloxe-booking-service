@@ -56,6 +56,7 @@ export class BookingService implements IBookingService {
       // Job is object of full order
       try {
         const input: IProcessBookingOrderDTO = job.data
+        console.log(`[processBookingOrderSub]: Start process booking order ${input.id}`)
         const resp = await this.handleAssignDriverForBooking(input)
         if (!resp?.driver || resp.driver.id === 0) {
           console.log('[processBookingOrderSub]: Cannot find a driver')
