@@ -57,22 +57,25 @@ export class BookingService implements IBookingService {
       try {
         const input: IProcessBookingOrderDTO = job.data
         const resp = await this.handleAssignDriverForBooking(input)
-        console.log('resp-------', resp)
         if (!resp?.driver || resp.driver.id === 0) {
+          console.log('[processBookingOrderSub]: Cannot find a driver')
           this.realtimeSvc.broadcast(input.id.toString(), JSON.stringify(resp))
           done()
           return
         }
         if (input.supportStaffId) {
+          console.log(`[processBookingOrderSub]: Found a driver: ${resp.driver.id}, boardcast to support staff ${input.supportStaffId}`)
           this.realtimeSvc.broadcast(input.supportStaffId.toString(), 'Hello')
         }
         const customer = await this.customerRepo.getCustomer(input.customerId)
         if (customer) {
+          console.log(`[processBookingOrderSub]: Found a driver: ${resp.driver.id}, boardcast to support customer ${customer.id}`)
           this.realtimeSvc.broadcast(input.id.toString(), JSON.stringify({
             ...input,
             status: 'DRIVER_FOUND',
             minDistance: resp.minDistance
           }))
+          console.log(`[processBookingOrderSub]: Found a driver: ${resp.driver.id}, boardcast to support driver ${resp.driver.id}`)
           this.realtimeSvc.broadcast(resp.driver.id.toString(), JSON.stringify({
             message: 'Bạn có 1 đơn đặt xe',
             booking: { ...input, status: 'DRIVER_FOUND', minDistance: resp.minDistance },
