@@ -41,6 +41,7 @@ export class BookingService implements IBookingService {
   }
 
   async processBookingOrderPub (input: IProcessBookingOrderDTO): Promise<any> {
+    console.log(`[processBookingOrderPub]: Start push booking order ${input.id}`)
     let delayInMilliseconds = 0
     if (input.startTime) {
       const nowInVN = toZonedTime(new Date(), 'Asia/Ho_Chi_Minh')
