@@ -44,7 +44,6 @@ export class RealtimeSvc implements IRealtimeSvc {
       this.connect()
     }
     this.socketio.on('connection', (socket) => {
-      console.log('socket-----', socket)
       console.log('a user connected')
     })
   }
