@@ -11,5 +11,6 @@ export const createBookingRoute = (): Router => {
   router.post('/process-booking', bookingController.processBookingOrder.bind(bookingController))
 
   bookingController.processBookingOrderSub()
+  bookingController.jobInfoLogging()
   return router
 }

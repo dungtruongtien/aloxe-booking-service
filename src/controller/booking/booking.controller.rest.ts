@@ -32,6 +32,10 @@ export default class BookingRestController implements IBookingRestController {
   processBookingOrderSub = (): any => {
     this.bookingService.processBookingOrderSub().then(() => {}).catch(() => {})
   }
+
+  jobInfoLogging = async (): Promise<any> => {
+    this.bookingService.jobInfoLogging().then(() => {}).catch(() => {})
+  }
 }
 
 // TODO: refactor this

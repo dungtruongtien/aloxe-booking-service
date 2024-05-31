@@ -142,17 +142,43 @@ var BookingService = (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
+                        console.log("[processBookingOrderPub]: Start push booking order ".concat(input.id));
                         delayInMilliseconds = 0;
                         if (input.startTime) {
                             nowInVN = (0, date_fns_tz_1.toZonedTime)(new Date(), 'Asia/Ho_Chi_Minh');
                             startTimeInVN = (0, date_fns_tz_1.toZonedTime)(new Date(input.startTime), 'Asia/Ho_Chi_Minh');
                             delayInMilliseconds = startTimeInVN.getTime() - nowInVN.getTime();
                         }
+                        if (delayInMilliseconds < 0) {
+                            delayInMilliseconds = 0;
+                        }
                         return [4, bookingQueue.add(input, { delay: delayInMilliseconds })];
                     case 1:
                         _a.sent();
                         return [2, null];
                 }
+            });
+        });
+    };
+    BookingService.prototype.jobInfoLogging = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                bookingQueue.on('completed', function (job, result) {
+                    console.log("Job completed with result: ".concat(result));
+                });
+                bookingQueue.on('failed', function (job, err) {
+                    console.log("Job failed with error: ".concat(err.message));
+                });
+                bookingQueue.on('stalled', function (job) {
+                    console.warn("Job stalled: ".concat(job.id));
+                });
+                bookingQueue.on('delayed', function (job) {
+                    console.log("Job delayed: ".concat(job.id));
+                });
+                bookingQueue.on('error', function (error) {
+                    console.error("Queue error: ".concat(error.message));
+                });
+                return [2];
             });
         });
     };
@@ -168,23 +194,27 @@ var BookingService = (function () {
                                     case 0:
                                         _a.trys.push([0, 3, , 4]);
                                         input = job.data;
+                                        console.log("[processBookingOrderSub]: Start process booking order ".concat(input.id));
                                         return [4, this.handleAssignDriverForBooking(input)];
                                     case 1:
                                         resp = _a.sent();
-                                        console.log('resp-------', resp);
                                         if (!(resp === null || resp === void 0 ? void 0 : resp.driver) || resp.driver.id === 0) {
+                                            console.log('[processBookingOrderSub]: Cannot find a driver');
                                             this.realtimeSvc.broadcast(input.id.toString(), JSON.stringify(resp));
                                             done();
                                             return [2];
                                         }
                                         if (input.supportStaffId) {
+                                            console.log("[processBookingOrderSub]: Found a driver: ".concat(resp.driver.id, ", boardcast to support staff ").concat(input.supportStaffId));
                                             this.realtimeSvc.broadcast(input.supportStaffId.toString(), 'Hello');
                                         }
                                         return [4, this.customerRepo.getCustomer(input.customerId)];
                                     case 2:
                                         customer = _a.sent();
                                         if (customer) {
+                                            console.log("[processBookingOrderSub]: Found a driver: ".concat(resp.driver.id, ", boardcast to support customer ").concat(customer.id));
                                             this.realtimeSvc.broadcast(input.id.toString(), JSON.stringify(__assign(__assign({}, input), { status: 'DRIVER_FOUND', minDistance: resp.minDistance })));
+                                            console.log("[processBookingOrderSub]: Found a driver: ".concat(resp.driver.id, ", boardcast to support driver ").concat(resp.driver.id));
                                             this.realtimeSvc.broadcast(resp.driver.id.toString(), JSON.stringify({
                                                 message: 'Bạn có 1 đơn đặt xe',
                                                 booking: __assign(__assign({}, input), { status: 'DRIVER_FOUND', minDistance: resp.minDistance }),

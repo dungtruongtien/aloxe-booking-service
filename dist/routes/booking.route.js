@@ -11,6 +11,7 @@ var createBookingRoute = function () {
     var bookingController = new booking_controller_rest_1.default();
     router.post('/process-booking', bookingController.processBookingOrder.bind(bookingController));
     bookingController.processBookingOrderSub();
+    bookingController.jobInfoLogging();
     return router;
 };
 exports.createBookingRoute = createBookingRoute;

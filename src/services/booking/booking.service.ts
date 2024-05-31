@@ -55,6 +55,29 @@ export class BookingService implements IBookingService {
     return null
   }
 
+  async jobInfoLogging (): Promise<any> {
+    // Event listeners for debugging
+    bookingQueue.on('completed', (job, result) => {
+      console.log(`Job completed with result: ${result}`)
+    })
+
+    bookingQueue.on('failed', (job, err) => {
+      console.log(`Job failed with error: ${err.message}`)
+    })
+
+    bookingQueue.on('stalled', (job) => {
+      console.warn(`Job stalled: ${job.id}`)
+    })
+
+    bookingQueue.on('delayed', (job) => {
+      console.log(`Job delayed: ${job.id}`)
+    })
+
+    bookingQueue.on('error', (error) => {
+      console.error(`Queue error: ${error.message}`)
+    })
+  }
+
   async processBookingOrderSub (): Promise<any> {
     await bookingQueue.process(async (job: any, done) => {
       // Job is object of full order

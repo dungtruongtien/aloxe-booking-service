@@ -66,6 +66,12 @@ var BookingRestController = (function () {
         this.processBookingOrderSub = function () {
             _this.bookingService.processBookingOrderSub().then(function () { }).catch(function () { });
         };
+        this.jobInfoLogging = function () { return __awaiter(_this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                this.bookingService.jobInfoLogging().then(function () { }).catch(function () { });
+                return [2];
+            });
+        }); };
         this.bookingService = new booking_service_1.BookingService(this.orderRepo, this.driverRepo, this.customerRepo);
         this.realtimeSvc = new socket_1.RealtimeSvc();
         this.bookingService.setRealtimeService(this.realtimeSvc);
