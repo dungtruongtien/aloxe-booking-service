@@ -51,6 +51,7 @@ export class BookingService implements IBookingService {
     if (delayInMilliseconds < 0) {
       delayInMilliseconds = 0
     }
+    console.log('delayInMilliseconds-----', delayInMilliseconds)
     await bookingQueue.add(input, { delay: delayInMilliseconds })
     return null
   }
